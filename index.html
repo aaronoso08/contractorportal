@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Energy Trust – Contractor Portal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
@@ -803,6 +804,7 @@
         <button class="btn btn-ghost btn-sm" onclick="copyTicketLink()">🔗 Copy link</button>
         <button class="btn btn-sm btn-orange" onclick="exportPDF()">⬇ Export PDF</button>
         <button class="btn btn-sm btn-primary" onclick="emailSummary()">✉ Email summary</button>
+        <button class="btn btn-sm btn-danger" onclick="closeTicket()" title="Export PDF then delete all files from storage">🗑 Close & Clean</button>
       </div>
     </div>
     <div id="detailSteps" class="steps-grid"></div>
@@ -892,24 +894,65 @@
 
 <script>
 // ═══════════════════════════════════════════════
-//  DATA LAYER  (localStorage)
+//  DATA LAYER  (Supabase)
 // ═══════════════════════════════════════════════
 const COORD_PIN = '1234';
+const SUPABASE_URL = 'https://tpbjsqwqfgwjymdcfouw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_v7bPMHffLqZCZvma_D_cJg_L1sMVo3L';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function loadTickets() {
-  return JSON.parse(localStorage.getItem('et_tickets') || '[]');
+// Local cache for speed
+let _cache = {};
+
+async function loadTickets() {
+  const { data, error } = await sb.from('tickets').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return Object.values(_cache); }
+  const tickets = data.map(r => r.data);
+  _cache = {};
+  tickets.forEach(t => _cache[t.id] = t);
+  return tickets;
 }
-function saveTickets(t) {
-  localStorage.setItem('et_tickets', JSON.stringify(t));
+
+async function saveTicket(ticket) {
+  _cache[ticket.id] = ticket;
+  const { error } = await sb.from('tickets').upsert({ id: ticket.id, data: ticket, updated_at: new Date().toISOString() });
+  if (error) console.error('Save error:', error);
 }
-function getTicket(id) {
-  return loadTickets().find(t => t.id === id);
+
+async function getTicket(id) {
+  if (_cache[id]) return _cache[id];
+  const { data, error } = await sb.from('tickets').select('data').eq('id', id).single();
+  if (error || !data) return null;
+  _cache[id] = data.data;
+  return data.data;
 }
-function updateTicket(updated) {
-  const tickets = loadTickets();
-  const idx = tickets.findIndex(t => t.id === updated.id);
-  if (idx >= 0) tickets[idx] = updated;
-  saveTickets(tickets);
+
+async function updateTicket(updated) {
+  await saveTicket(updated);
+}
+
+// File upload to Supabase Storage
+async function uploadFileToStorage(ticketId, stepIndex, file) {
+  const ext = file.name.split('.').pop();
+  const path = `${ticketId}/${stepIndex}/${Date.now()}_${file.name}`;
+  const { data, error } = await sb.storage.from('ticket-files').upload(path, file, { upsert: true });
+  if (error) { console.error('Upload error:', error); return null; }
+  const { data: urlData } = sb.storage.from('ticket-files').getPublicUrl(path);
+  return { path, url: urlData.publicUrl, name: file.name, type: file.type };
+}
+
+async function deleteTicketFiles(ticketId) {
+  // List all files for this ticket
+  const { data: list } = await sb.storage.from('ticket-files').list(ticketId, { limit: 1000 });
+  if (!list || !list.length) return;
+  // List subfolders
+  for (const folder of list) {
+    const { data: subList } = await sb.storage.from('ticket-files').list(`${ticketId}/${folder.name}`, { limit: 1000 });
+    if (subList && subList.length) {
+      const paths = subList.map(f => `${ticketId}/${folder.name}/${f.name}`);
+      await sb.storage.from('ticket-files').remove(paths);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -959,8 +1002,8 @@ function showCoordDash() {
   renderDash();
 }
 
-function renderDash() {
-  const tickets = loadTickets();
+async function renderDash() {
+  const tickets = await loadTickets();
   // stats
   const total = tickets.length;
   const active = tickets.filter(t => t.status === 'active').length;
@@ -975,6 +1018,7 @@ function renderDash() {
   `;
 
   const list = document.getElementById('ticketList');
+  list.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 12px"></div><p>Loading tickets…</p></div>';
   if (!tickets.length) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No tickets yet. Create the first one.</p></div>`;
     return;
@@ -1001,9 +1045,9 @@ function renderDash() {
   }).join('');
 }
 
-function openTicketDetail(id) {
+async function openTicketDetail(id) {
   currentTicketId = id;
-  const t = getTicket(id);
+  const t = await getTicket(id);
   if (!t) return;
   document.getElementById('detailTitle').textContent = `${t.id} — ${t.contractor}`;
   document.getElementById('detailMeta').textContent = `${t.address} · ${t.type} · ${t.email}`;
@@ -1021,8 +1065,9 @@ function renderDetailSteps(t) {
     const submissionHtml = (step.submissions || []).map(s => `
       <div class="submission-item">
         <span class="submission-icon">${fileIcon(s.type)}</span>
-        <span class="submission-name">${s.name}</span>
+        <span class="submission-name">${s.name}${s.archived ? ' <em style="color:var(--text3);font-size:11px">(archived)</em>' : ''}</span>
         <span class="submission-meta">${s.date}</span>
+        ${s.url ? `<a href="${s.url}" target="_blank" class="submission-view">View</a>` : ''}
       </div>`).join('');
 
     const fieldHtml = (step.fields || []).map(f => `
@@ -1071,30 +1116,30 @@ function toggleStepCard(i) {
   card.classList.toggle('open');
 }
 
-function approveStep(i) {
-  const t = getTicket(currentTicketId);
+async function approveStep(i) {
+  const t = await getTicket(currentTicketId);
   t.steps[i].status = 'approved';
   checkComplete(t);
-  updateTicket(t);
-  openTicketDetail(currentTicketId);
+  await updateTicket(t);
+  await openTicketDetail(currentTicketId);
   toast('Step approved');
 }
-function rejectStep(i) {
-  const t = getTicket(currentTicketId);
+async function rejectStep(i) {
+  const t = await getTicket(currentTicketId);
   t.steps[i].status = 'rejected';
   t.status = 'active';
-  updateTicket(t);
-  openTicketDetail(currentTicketId);
+  await updateTicket(t);
+  await openTicketDetail(currentTicketId);
   toast('Step returned to contractor', 'warn');
 }
-function postCoordComment(i) {
+async function postCoordComment(i) {
   const txt = document.getElementById(`coordComment_${i}`).value.trim();
   if (!txt) return;
-  const t = getTicket(currentTicketId);
+  const t = await getTicket(currentTicketId);
   if (!t.steps[i].comments) t.steps[i].comments = [];
   t.steps[i].comments.push({ from: 'coord', text: txt, date: now() });
-  updateTicket(t);
-  openTicketDetail(currentTicketId);
+  await updateTicket(t);
+  await openTicketDetail(currentTicketId);
   toast('Comment added');
 }
 
@@ -1133,7 +1178,7 @@ function closeNewTicketModal() {
   document.getElementById('newTicketModal').classList.remove('open');
 }
 function generateId() {
-  const tickets = loadTickets();
+  const tickets = await loadTickets();
   const n = tickets.length + 1;
   return `ET-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`;
 }
@@ -1163,7 +1208,7 @@ function createTicket() {
   const address = document.getElementById('ntAddress').value.trim();
   const type = document.getElementById('ntType').value;
   if (!id || !contractor || !address) { toast('Fill in all required fields', 'error'); return; }
-  if (getTicket(id)) { toast('Ticket ID already exists', 'error'); return; }
+  if (_cache[id]) { toast('Ticket ID already exists', 'error'); return; }
   const ticket = {
     id,
     contractor,
@@ -1181,7 +1226,7 @@ function createTicket() {
       comments: []
     }))
   };
-  const tickets = loadTickets();
+  const tickets = await loadTickets();
   tickets.push(ticket);
   saveTickets(tickets);
   closeNewTicketModal();
@@ -1194,9 +1239,10 @@ function createTicket() {
 // ═══════════════════════════════════════════════
 let contractorTicketId = null;
 
-function openContractorTicket() {
+async function openContractorTicket() {
   const code = document.getElementById('ticketCodeInput').value.trim().toUpperCase();
-  const t = getTicket(code);
+  toast('Looking up ticket…');
+  const t = await getTicket(code);
   if (!t) { toast('Ticket not found. Check the code and try again.', 'error'); return; }
   contractorTicketId = code;
   renderContractorView(t);
@@ -1204,14 +1250,13 @@ function openContractorTicket() {
 }
 
 // also allow URL param ?ticket=ET-2024-001
-(function checkUrlParam() {
+(async function checkUrlParam() {
   const p = new URLSearchParams(location.search).get('ticket');
   if (p) {
-    const t = getTicket(p.toUpperCase());
+    const t = await getTicket(p.toUpperCase());
     if (t) {
       contractorTicketId = p.toUpperCase();
       renderContractorView(t);
-      // delay to let DOM load
       setTimeout(() => showView('viewContractor'), 50);
     }
   }
@@ -1242,9 +1287,10 @@ function renderContractorView(t) {
     const uploadedFilesHtml = (step.submissions || []).map((s, fi) => `
       <div class="uploaded-file">
         <span class="icon">${fileIcon(s.type)}</span>
-        <span class="name">${s.name}</span>
+        <span class="name">${s.archived ? s.name + ' (archived)' : s.name}</span>
+        ${s.url ? `<a href="${s.url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:underline;margin-right:4px">View</a>` : ''}
         <span class="size">${s.date}</span>
-        <button class="remove" onclick="removeSubmission(${i}, ${fi})">×</button>
+        ${!s.archived ? `<button class="remove" onclick="removeSubmission(${i}, ${fi})">×</button>` : ''}
       </div>`).join('');
 
     const fieldsHtml = (step.fields || []).map((f, fi) => `
@@ -1315,32 +1361,39 @@ function toggleCStep(i) {
 function triggerUpload(i) {
   document.getElementById(`fileInput_${i}`).click();
 }
-function handleUpload(i, event) {
+async function handleUpload(i, event) {
   const files = Array.from(event.target.files);
-  const t = getTicket(contractorTicketId);
-  files.forEach(file => {
-    t.steps[i].submissions.push({
-      name: file.name,
-      type: file.type,
-      date: now(),
-      size: file.size
-    });
-  });
+  if (!files.length) return;
+  toast(`Uploading ${files.length} file(s)…`);
+  const t = await getTicket(contractorTicketId);
+  for (const file of files) {
+    const result = await uploadFileToStorage(contractorTicketId, i, file);
+    if (result) {
+      t.steps[i].submissions.push({ name: result.name, type: result.type, date: now(), size: file.size, url: result.url, path: result.path });
+    } else {
+      // fallback to base64 if storage fails
+      const data = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(file); });
+      t.steps[i].submissions.push({ name: file.name, type: file.type, date: now(), size: file.size, data });
+    }
+  }
   if (t.status === 'pending') t.status = 'active';
-  updateTicket(t);
+  await updateTicket(t);
   renderContractorView(t);
-  // reopen step
   setTimeout(() => {
     document.getElementById(`cstep_${i}`).classList.add('open');
-    const t2 = getTicket(contractorTicketId);
-    if (!t2.steps[i].signature) initSigPad(i);
+    const t2 = _cache[contractorTicketId];
+    if (t2 && !t2.steps[i].signature) initSigPad(i);
   }, 50);
-  toast(`${files.length} file(s) added`);
+  toast(`${files.length} file(s) uploaded ✓`);
 }
-function removeSubmission(stepIdx, fileIdx) {
-  const t = getTicket(contractorTicketId);
+async function removeSubmission(stepIdx, fileIdx) {
+  const t = await getTicket(contractorTicketId);
+  const sub = t.steps[stepIdx].submissions[fileIdx];
+  if (sub && sub.path) {
+    await sb.storage.from('ticket-files').remove([sub.path]);
+  }
   t.steps[stepIdx].submissions.splice(fileIdx, 1);
-  updateTicket(t);
+  await updateTicket(t);
   renderContractorView(t);
   setTimeout(() => {
     document.getElementById(`cstep_${stepIdx}`).classList.add('open');
@@ -1348,10 +1401,10 @@ function removeSubmission(stepIdx, fileIdx) {
 }
 
 // form fields
-function updateField(stepIdx, fieldIdx, val) {
-  const t = getTicket(contractorTicketId);
+async function updateField(stepIdx, fieldIdx, val) {
+  const t = await getTicket(contractorTicketId);
   t.steps[stepIdx].fields[fieldIdx].value = val;
-  updateTicket(t);
+  await updateTicket(t);
 }
 
 // signature
@@ -1379,25 +1432,25 @@ function clearCanvas(i) {
   if (!pad) return;
   pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
 }
-function saveSignature(i) {
+async function saveSignature(i) {
   const pad = sigPads[i];
   if (!pad) return;
   const dataUrl = pad.canvas.toDataURL();
-  const t = getTicket(contractorTicketId);
+  const t = await getTicket(contractorTicketId);
   t.steps[i].signature = dataUrl;
   t.steps[i].signatureDate = now();
-  updateTicket(t);
+  await updateTicket(t);
   renderContractorView(t);
   setTimeout(() => {
     document.getElementById(`cstep_${i}`).classList.add('open');
   }, 50);
   toast('Signature saved');
 }
-function clearSignature(i) {
-  const t = getTicket(contractorTicketId);
+async function clearSignature(i) {
+  const t = await getTicket(contractorTicketId);
   t.steps[i].signature = null;
   t.steps[i].signatureDate = null;
-  updateTicket(t);
+  await updateTicket(t);
   renderContractorView(t);
   setTimeout(() => {
     document.getElementById(`cstep_${i}`).classList.add('open');
@@ -1405,11 +1458,11 @@ function clearSignature(i) {
   }, 80);
 }
 
-function markStepDone(i) {
-  const t = getTicket(contractorTicketId);
+async function markStepDone(i) {
+  const t = await getTicket(contractorTicketId);
   t.steps[i].status = 'done';
   if (t.status === 'pending') t.status = 'active';
-  updateTicket(t);
+  await updateTicket(t);
   renderContractorView(t);
   toast('Step submitted to coordinator ✓');
 }
@@ -1422,15 +1475,15 @@ function copyTicketLink() {
   navigator.clipboard.writeText(url).then(() => toast('Link copied to clipboard'));
 }
 
-function exportPDF() {
-  const t = getTicket(currentTicketId);
+async function exportPDF() {
+  const t = await getTicket(currentTicketId);
   if (!t) return;
   document.getElementById('pdfLoading').classList.add('show');
   setTimeout(() => {
     try {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-      const green = [26, 92, 58];
+      const green = [107, 45, 15];
       const gray = [108, 117, 125];
       let y = 50;
       const W = 612;
@@ -1466,7 +1519,7 @@ function exportPDF() {
       t.steps.forEach((step, i) => {
         if (y > 700) { doc.addPage(); y = 50; }
         const statusLabel = { approved: 'APPROVED', done: 'SUBMITTED', rejected: 'REJECTED', pending: 'PENDING' }[step.status] || 'PENDING';
-        const statusColor = { approved: [26, 92, 58], done: [224, 123, 42], rejected: [192, 57, 43], pending: [108, 117, 125] }[step.status];
+        const statusColor = { approved: [22, 163, 74], done: [224, 123, 42], rejected: [192, 57, 43], pending: [108, 117, 125] }[step.status];
 
         // Step header
         doc.setFillColor(248, 249, 250);
@@ -1483,12 +1536,27 @@ function exportPDF() {
 
         // Files
         if (step.submissions && step.submissions.length) {
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...gray);
           step.submissions.forEach(s => {
-            doc.text(`  📎 ${s.name} (${s.date})`, 50, y);
-            y += 13;
+            if (y > 680) { doc.addPage(); y = 50; }
+            if (s.type && s.type.startsWith('image/') && (s.data || s.url)) {
+              try {
+                const imgSrc = s.data || s.url;
+                const imgType = s.type.includes('png') ? 'PNG' : 'JPEG';
+                doc.addImage(imgSrc, imgType, 50, y, 480, 0);
+                const props = doc.getImageProperties(imgSrc);
+                const h = (props.height / props.width) * 480;
+                y += h + 8;
+              } catch(e) {
+                doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...gray);
+                doc.text(`  [Image] ${s.name} (${s.date})`, 50, y); y += 13;
+              }
+            } else if (s.type === 'application/pdf') {
+              doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...gray);
+              doc.text(`  [PDF attached] ${s.name} (${s.date})`, 50, y); y += 13;
+            } else {
+              doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...gray);
+              doc.text(`  ${s.name} (${s.date})`, 50, y); y += 13;
+            }
           });
         }
         // Fields
@@ -1527,8 +1595,25 @@ function exportPDF() {
   }, 300);
 }
 
-function emailSummary() {
-  const t = getTicket(currentTicketId);
+async function closeTicket() {
+  if (!confirm('This will export the PDF and delete all uploaded files from storage to free space. Continue?')) return;
+  await exportPDF();
+  const t = await getTicket(currentTicketId);
+  if (!t) return;
+  await deleteTicketFiles(currentTicketId);
+  // Clear submission URLs/data from ticket record, keep names for record
+  t.steps.forEach(step => {
+    step.submissions = step.submissions.map(s => ({ name: s.name, type: s.type, date: s.date, archived: true }));
+  });
+  t.status = 'complete';
+  t.closedAt = now();
+  await updateTicket(t);
+  toast('Ticket closed — files deleted, PDF saved ✓');
+  setTimeout(() => showCoordDash(), 1500);
+}
+
+async function emailSummary() {
+  const t = await getTicket(currentTicketId);
   if (!t) return;
   const done = t.steps.filter(s => s.status === 'done' || s.status === 'approved').length;
   const pct = Math.round(done / t.steps.length * 100);
@@ -1566,8 +1651,12 @@ function toast(msg, type = 'success') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// seed demo data if empty
-if (!loadTickets().length) {
+// seed demo data if Supabase is empty
+(async function seedIfEmpty() {
+  const tickets = await loadTickets();
+  if (tickets.length) return;
+  // seed
+  if (false) {
   const demo = [
     {
       id: 'ET-2024-001',
@@ -1612,8 +1701,9 @@ if (!loadTickets().length) {
       ]
     }
   ];
-  saveTickets(demo);
-}
+  for (const t of demo) { await saveTicket(t); }
+  }
+})();
 </script>
 </body>
 </html>
