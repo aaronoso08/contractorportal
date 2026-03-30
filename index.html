@@ -1201,7 +1201,7 @@ function removeStep(i) {
   modalSteps.splice(i, 1);
   renderModalSteps();
 }
-function createTicket() {
+async function createTicket() {
   const id = document.getElementById('ntId').value.trim().toUpperCase();
   const contractor = document.getElementById('ntContractor').value.trim();
   const email = document.getElementById('ntEmail').value.trim();
@@ -1226,9 +1226,7 @@ function createTicket() {
       comments: []
     }))
   };
-  const tickets = await loadTickets();
-  tickets.push(ticket);
-  saveTickets(tickets);
+  await saveTicket(ticket);
   closeNewTicketModal();
   showCoordDash();
   toast(`Ticket ${id} created`);
