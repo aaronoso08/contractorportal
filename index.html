@@ -1063,11 +1063,12 @@ function renderDetailSteps(t) {
                      step.status === 'rejected' ? '<span class="status-chip chip-rejected">Rejected</span>' :
                      step.status === 'done' ? '<span class="status-chip chip-active">Submitted</span>' : '';
     const submissionHtml = (step.submissions || []).map(s => `
-      <div class="submission-item">
+      <div class="submission-item" style="flex-wrap:wrap;gap:6px">
         <span class="submission-icon">${fileIcon(s.type)}</span>
-        <span class="submission-name">${s.name}${s.archived ? ' <em style="color:var(--text3);font-size:11px">(archived)</em>' : ''}</span>
+        <span class="submission-name" style="flex:1;min-width:120px">${s.name}${s.archived ? ' <em style="color:var(--text3);font-size:11px">(archived)</em>' : ''}</span>
         <span class="submission-meta">${s.date}</span>
-        ${s.url ? `<a href="${s.url}" target="_blank" class="submission-view">View</a>` : ''}
+        ${s.url ? `<a href="${s.url}" target="_blank" class="submission-view" style="background:var(--accent);color:white;padding:3px 10px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">⬇ Open</a>` : ''}
+        ${s.url && s.type && s.type.startsWith('image/') ? `<div style="width:100%;margin-top:6px"><img src="${s.url}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--border);object-fit:contain"></div>` : ''}
       </div>`).join('');
 
     const fieldHtml = (step.fields || []).map(f => `
@@ -1283,12 +1284,13 @@ function renderContractorView(t) {
       </div>`).join('');
 
     const uploadedFilesHtml = (step.submissions || []).map((s, fi) => `
-      <div class="uploaded-file">
+      <div class="uploaded-file" style="flex-wrap:wrap">
         <span class="icon">${fileIcon(s.type)}</span>
-        <span class="name">${s.archived ? s.name + ' (archived)' : s.name}</span>
-        ${s.url ? `<a href="${s.url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:underline;margin-right:4px">View</a>` : ''}
+        <span class="name" style="flex:1;min-width:100px">${s.archived ? s.name + ' (archived)' : s.name}</span>
+        ${s.url ? `<a href="${s.url}" target="_blank" style="font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;background:var(--yellow-bg);padding:2px 8px;border-radius:5px">⬇ Open</a>` : ''}
         <span class="size">${s.date}</span>
         ${!s.archived ? `<button class="remove" onclick="removeSubmission(${i}, ${fi})">×</button>` : ''}
+        ${s.url && s.type && s.type.startsWith('image/') ? `<div style="width:100%;margin-top:6px"><img src="${s.url}" style="max-width:100%;max-height:180px;border-radius:6px;object-fit:contain;border:1px solid var(--border)"></div>` : ''}
       </div>`).join('');
 
     const fieldsHtml = (step.fields || []).map((f, fi) => `
