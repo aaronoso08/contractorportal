@@ -3,828 +3,1042 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Energy Trust – Contractor Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
   :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #1c2333;
-    --border: #2a3441;
-    --accent: #e8a838;
-    --accent2: #2ecc71;
-    --danger: #e74c3c;
-    --text: #e6edf3;
-    --text-muted: #7d8590;
-    --text-dim: #4a5568;
-    --paid: #1a3a2a;
-    --paid-border: #2ecc71;
-    --unpaid: #2a1a1a;
-    --unpaid-border: #e74c3c;
+    --brand:#6B2D0F;--brand-mid:#8B3A12;--brand-light:#A0522D;
+    --accent:#E87A2A;--accent-light:#F59E0B;
+    --bg:#F7F3EF;--surface:#FFF;--surface2:#FDF8F4;
+    --border:#E8DDD4;--border-dark:#D4C4B0;
+    --text:#1C1209;--text2:#5C4033;--text3:#9C7B6B;
+    --green:#16A34A;--green-bg:#DCFCE7;--green-dark:#166534;
+    --red:#DC2626;--red-bg:#FEE2E2;--red-dark:#991B1B;
+    --yellow:#D97706;--yellow-bg:#FEF3C7;--yellow-dark:#92400E;
+    --blue:#1D4ED8;--blue-bg:#DBEAFE;--gray:#6B7280;--gray-bg:#F3F4F6;
+    --green-light:#DCFCE7;--green-accent:#16A34A;--green-mid:#8B3A12;
+    --orange:#E87A2A;--orange-light:#FEF3C7;
+    --gray-50:#F7F3EF;--gray-100:#FDF8F4;--gray-200:#E8DDD4;
+    --gray-400:#9C7B6B;--gray-600:#5C4033;--gray-800:#1C1209;
+    --white:#ffffff;
+    --shadow-sm:0 1px 3px rgba(107,45,15,.08);
+    --shadow-md:0 4px 12px rgba(107,45,15,.12);
+    --shadow-lg:0 12px 32px rgba(107,45,15,.18);
+    --radius:10px;--radius-lg:14px;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-  }
-
-  /* Header */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 18px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .logo-badge {
-    background: var(--accent);
-    color: #000;
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    padding: 5px 10px;
-    border-radius: 4px;
-    text-transform: uppercase;
-  }
-
-  .header h1 {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-    color: var(--text);
-    letter-spacing: -0.02em;
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  /* Stats bar */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .stat {
-    background: var(--surface);
-    padding: 20px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .stat-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
-  .stat-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--text);
-    line-height: 1;
-  }
-
-  .stat-value.green { color: var(--accent2); }
-  .stat-value.amber { color: var(--accent); }
-  .stat-value.red { color: var(--danger); }
-
-  /* Main layout */
-  .main {
-    padding: 28px 32px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  /* Toolbar */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  .filter-group {
-    display: flex;
-    gap: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px;
-  }
-
-  .filter-btn {
-    padding: 6px 14px;
-    border-radius: 5px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .filter-btn.active {
-    background: var(--accent);
-    color: #000;
-  }
-
-  .filter-btn:hover:not(.active) {
-    color: var(--text);
-    background: var(--surface2);
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--text-dim); }
-
-  .btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #000;
-  }
-
-  .btn-primary:hover { background: #d4941f; }
-
-  .btn-ghost {
-    background: var(--surface);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-  }
-
-  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
-
-  /* Table */
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  thead {
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-  }
-
-  th {
-    padding: 12px 16px;
-    text-align: left;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.1s;
-  }
-
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--surface2); }
-
-  tbody tr.is-paid { background: rgba(46, 204, 113, 0.04); }
-  tbody tr.is-paid:hover { background: rgba(46, 204, 113, 0.08); }
-
-  td {
-    padding: 13px 16px;
-    font-size: 14px;
-    vertical-align: middle;
-  }
-
-  .td-date {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  .td-client {
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .td-address {
-    color: var(--text-muted);
-    font-size: 13px;
-    max-width: 220px;
-  }
-
-  .contractor-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .td-amount {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    color: var(--accent);
-    white-space: nowrap;
-  }
-
-  .paid-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-  }
-
-  .toggle-switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    inset: 0;
-    background: var(--border);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-
-  .toggle-slider:before {
-    content: '';
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    left: 3px;
-    top: 3px;
-    background: var(--text-muted);
-    border-radius: 50%;
-    transition: 0.2s;
-  }
-
-  input:checked + .toggle-slider { background: var(--accent2); }
-  input:checked + .toggle-slider:before {
-    transform: translateX(16px);
-    background: #fff;
-  }
-
-  .paid-label {
-    font-size: 12px;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .paid-label.yes { color: var(--accent2); }
-  .paid-label.no { color: var(--text-dim); }
-
-  .action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-dim);
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: all 0.15s;
-    font-size: 15px;
-  }
-
-  .action-btn:hover { color: var(--danger); background: rgba(231,76,60,0.1); }
-
-  /* Modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-overlay.hidden { display: none; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-    width: 100%;
-    max-width: 480px;
-    position: relative;
-  }
-
-  .modal h2 {
-    font-family: 'Syne', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 24px;
-    color: var(--text);
-  }
-
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-group label {
-    display: block;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus { border-color: var(--accent); }
-
-  .form-group select option { background: var(--surface2); }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 24px;
-    justify-content: flex-end;
-  }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-dim);
-  }
-
-  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
-
-  /* Loading */
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-  }
-
-  /* Contractor colors */
-  .c-olvera { background: rgba(52,152,219,0.15); color: #5dade2; }
-  .c-jara { background: rgba(46,204,113,0.15); color: #58d68d; }
-  .c-as { background: rgba(155,89,182,0.15); color: #bb8fce; }
-  .c-as-hc { background: rgba(231,76,60,0.15); color: #ec7063; }
-  .c-dunamis { background: rgba(230,126,34,0.15); color: #f0a500; }
-  .c-mps { background: rgba(26,188,156,0.15); color: #48c9b0; }
-  .c-other { background: rgba(127,140,141,0.15); color: #aab7b8; }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 18px;
-    font-size: 14px;
-    color: var(--text);
-    z-index: 2000;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-  }
-
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: var(--accent2); }
-  .toast.error { border-color: var(--danger); }
-
-  @media (max-width: 768px) {
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .main { padding: 16px; }
-    .header { padding: 14px 16px; }
-    .td-address { display: none; }
-    th:nth-child(3), td:nth-child(3) { display: none; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-mid) 60%,var(--brand-light) 100%);color:white;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+  .topbar-brand{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;letter-spacing:.04em;display:flex;align-items:center;gap:10px;}
+  .topbar-right{display:flex;align-items:center;gap:10px;font-size:13px;opacity:.9;}
+  .mode-badge{background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:12px;font-family:'DM Mono',monospace;}
+  .lang-toggle{display:flex;gap:3px;}
+  .lang-btn{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:5px;border:1px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.55);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;letter-spacing:.04em;}
+  .lang-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* VIEWS */
+  .view{display:none;}.view.active{display:block;}
+
+  /* ENTRY */
+  .entry-wrap{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;padding:40px 20px;background:#ffffff;}
+  .entry-card{background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:48px;max-width:460px;width:100%;text-align:center;}
+  .entry-logo{width:52px;height:52px;background:var(--brand);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:24px;}
+  .entry-card h1{font-size:22px;font-weight:700;color:var(--brand);margin-bottom:6px;}
+  .entry-card p{color:var(--gray-600);font-size:14px;margin-bottom:32px;}
+  .entry-divider{display:flex;align-items:center;gap:12px;margin:24px 0;color:var(--gray-400);font-size:12px;}
+  .entry-divider::before,.entry-divider::after{content:'';flex:1;height:1px;background:var(--gray-200);}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;border:none;cursor:pointer;transition:all .15s;}
+  .btn-primary{background:var(--accent);color:white;width:100%;justify-content:center;}
+  .btn-primary:hover{background:#d46b1a;transform:translateY(-1px);box-shadow:var(--shadow-md);}
+  .btn-outline{background:var(--surface);color:var(--brand);border:1.5px solid var(--border-dark);width:100%;justify-content:center;}
+  .btn-outline:hover{background:var(--surface2);border-color:var(--accent);}
+  .btn-sm{padding:7px 14px;font-size:13px;}
+  .btn-danger{background:var(--red);color:white;}.btn-danger:hover{background:#a93226;}
+  .btn-orange{background:var(--orange);color:white;}.btn-orange:hover{background:#c9691e;}
+  .btn-ghost{background:transparent;color:var(--gray-600);border:1.5px solid var(--gray-200);}
+  .btn-ghost:hover{background:var(--gray-100);color:var(--gray-800);}
+
+  .input{width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;transition:border-color .15s;background:white;}
+  .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,122,42,.12);}
+
+  /* DASHBOARD */
+  .coord-layout{max-width:1100px;margin:0 auto;padding:28px 20px;}
+  .coord-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .coord-header h2{font-size:20px;font-weight:700;color:var(--brand);}
+  .coord-header p{font-size:13px;color:var(--gray-600);margin-top:2px;}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);border:1.5px solid var(--border);border-left:3px solid var(--accent);}
+  .stat-card.orange{border-left-color:var(--yellow);}.stat-card.red{border-left-color:var(--red);}.stat-card.gray{border-left-color:var(--gray);}
+  .stat-num{font-size:28px;font-weight:600;font-family:'DM Mono',monospace;line-height:1;}
+  .stat-label{font-size:12px;color:var(--gray-600);margin-top:4px;}
+  .section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gray-600);margin-bottom:12px;}
+  .ticket-list{display:flex;flex-direction:column;gap:10px;}
+  .ticket-row{background:white;border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:16px;cursor:pointer;transition:box-shadow .15s,transform .12s;border-left:3px solid transparent;}
+  .ticket-row:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);border-color:var(--accent);}
+  .ticket-row.status-active{border-left-color:var(--yellow);}.ticket-row.status-complete{border-left-color:var(--green);}.ticket-row.status-pending{border-left-color:var(--gray);}
+  .ticket-id{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray-600);min-width:80px;}
+  .ticket-info{flex:1;}.ticket-name{font-size:14px;font-weight:500;}.ticket-sub{font-size:12px;color:var(--gray-600);margin-top:2px;}
+  .ticket-progress-wrap{display:flex;align-items:center;gap:8px;min-width:120px;}
+  .progress-bar{flex:1;height:6px;background:var(--gray-200);border-radius:99px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--green-accent);border-radius:99px;transition:width .4s;}
+  .progress-fill.orange{background:var(--orange);}
+  .progress-pct{font-size:12px;font-family:'DM Mono',monospace;color:var(--gray-600);min-width:32px;}
+  .status-chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;}
+  .chip-active{background:var(--orange-light);color:var(--orange);}
+  .chip-complete{background:var(--green-light);color:var(--green);}
+  .chip-pending{background:var(--gray-100);color:var(--gray-600);}
+  .chip-approved{background:var(--green-light);color:var(--green);}
+  .chip-rejected{background:var(--red-bg);color:var(--red);}
+  .empty-state{text-align:center;padding:48px 24px;color:var(--gray-400);}
+  .empty-state .icon{font-size:36px;margin-bottom:12px;}
+  .empty-state p{font-size:14px;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal{background:white;border-radius:var(--radius-lg);padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s;}
+  .modal-overlay.open .modal{transform:translateY(0);}
+  .modal h3{font-size:18px;font-weight:700;margin-bottom:20px;color:var(--brand);}
+  .form-group{margin-bottom:16px;}
+  .form-label{font-size:13px;font-weight:500;color:var(--gray-800);display:block;margin-bottom:6px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-footer{display:flex;gap:10px;margin-top:24px;justify-content:flex-end;}
+  .steps-builder{border:1.5px solid var(--gray-200);border-radius:8px;overflow:hidden;}
+  .step-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--gray-100);font-size:13px;}
+  .step-item:last-child{border-bottom:none;}
+  .step-num{width:22px;height:22px;background:var(--yellow-bg);color:var(--yellow-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+  .step-name{flex:1;}
+  .step-remove{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;}
+  .step-remove:hover{color:var(--red);}
+  .add-step-row{display:flex;gap:8px;padding:10px 14px;background:var(--gray-50);border-top:1px solid var(--gray-100);}
+
+  /* TICKET DETAIL */
+  .detail-layout{max-width:900px;margin:0 auto;padding:28px 20px;}
+  .detail-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+  .detail-back{background:none;border:none;color:var(--brand);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0;margin-bottom:12px;}
+  .detail-back:hover{text-decoration:underline;}
+  .detail-title{font-size:20px;font-weight:700;color:var(--brand);}
+  .detail-meta{font-size:13px;color:var(--gray-600);margin-top:3px;}
+  .detail-actions{display:flex;gap:8px;margin-left:auto;}
+  .steps-grid{display:flex;flex-direction:column;gap:12px;}
+  .step-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;border-left:3px solid var(--gray-200);transition:border-left-color .2s;}
+  .step-card.done{border-left-color:var(--green-accent);}.step-card.approved{border-left-color:var(--green);}.step-card.rejected{border-left-color:var(--red);}
+  .step-card-header{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;user-select:none;}
+  .step-card-header:hover{background:var(--gray-50);}
+  .step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;background:var(--gray-100);color:var(--gray-600);transition:all .2s;}
+  .step-circle.done{background:var(--green-accent);color:white;}.step-circle.approved{background:var(--green);color:white;}.step-circle.rejected{background:var(--red);color:white;}
+  .step-card-title{font-size:14px;font-weight:500;flex:1;}
+  .step-card-chips{display:flex;gap:6px;align-items:center;}
+  .step-chevron{color:var(--gray-400);font-size:16px;transition:transform .2s;}
+  .step-card.open .step-chevron{transform:rotate(180deg);}
+  .step-card-body{display:none;padding:0 18px 18px 60px;}
+  .step-card.open .step-card-body{display:block;}
+  .submission-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .submission-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--gray-50);border-radius:8px;font-size:13px;}
+  .submission-icon{font-size:18px;}.submission-name{flex:1;font-weight:500;}.submission-meta{font-size:11px;color:var(--gray-600);}
+  .coord-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+  .comment-box{width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;margin-top:10px;min-height:64px;}
+  .comment-box:focus{outline:none;border-color:var(--accent);}
+  .comment-thread{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .comment-bubble{padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5;}
+  .comment-bubble.coord{background:var(--yellow-bg);}.comment-bubble.contractor{background:var(--gray-bg);}
+  .comment-author{font-weight:600;font-size:11px;margin-bottom:2px;color:var(--gray-600);}
+
+  /* CONTRACTOR VIEW */
+  .contractor-layout{max-width:680px;margin:0 auto;padding:28px 20px;}
+  .contractor-header{background:white;border-radius:var(--radius-lg);padding:22px 24px;box-shadow:var(--shadow-sm);margin-bottom:20px;}
+  .contractor-header h2{font-size:18px;font-weight:700;color:var(--brand);}
+  .contractor-header p{font-size:13px;color:var(--gray-600);margin-top:4px;}
+  .contractor-progress{margin-top:14px;display:flex;align-items:center;gap:10px;}
+  .contractor-steps{display:flex;flex-direction:column;gap:10px;}
+  .cstep-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;border-left:3px solid var(--gray-200);}
+  .cstep-card.done{border-left-color:var(--green-accent);}.cstep-card.rejected{border-left-color:var(--red);}
+  .cstep-header{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;user-select:none;}
+  .cstep-header:hover{background:var(--gray-50);}
+  .cstep-title{font-size:14px;font-weight:500;flex:1;}
+  .cstep-body{display:none;padding:4px 18px 18px 60px;}
+  .cstep-card.open .cstep-body{display:block;}
+  .cstep-card.open .step-chevron{transform:rotate(180deg);}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:12px;position:relative;}
+  .upload-zone:hover{border-color:var(--accent);background:var(--surface2);}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .upload-zone-icon{font-size:24px;margin-bottom:6px;}
+  .upload-zone-text{font-size:13px;color:var(--gray-600);}
+  .upload-zone-hint{font-size:11px;color:var(--gray-400);margin-top:2px;}
+  .uploaded-files{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .uploaded-file{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--gray-50);border-radius:8px;font-size:13px;}
+  .uploaded-file .icon{font-size:16px;}.uploaded-file .name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .uploaded-file .size{font-size:11px;color:var(--gray-400);}
+  .uploaded-file .remove{background:none;border:none;color:var(--gray-400);cursor:pointer;font-size:16px;}
+  .uploaded-file .remove:hover{color:var(--red);}
+  .field-group{margin-bottom:12px;}
+  .field-group label{font-size:12px;font-weight:500;color:var(--gray-600);display:block;margin-bottom:4px;}
+  .signature-pad-wrap{border:1.5px solid var(--gray-200);border-radius:8px;overflow:hidden;margin-bottom:10px;position:relative;background:white;}
+  .signature-pad-wrap canvas{display:block;touch-action:none;cursor:crosshair;}
+  .sig-toolbar{display:flex;gap:6px;padding:6px 10px;background:var(--gray-50);border-top:1px solid var(--gray-100);}
+  .mark-complete-btn{width:100%;margin-top:14px;}
+
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:white;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .pdf-loading{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center;}
+  .pdf-loading.show{display:flex;}
+  .pdf-loading-card{background:white;border-radius:var(--radius-lg);padding:32px 40px;text-align:center;}
+  .spinner{width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(1.3);}}
+
+  @media(max-width:600px){
+    .form-row{grid-template-columns:1fr;}
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .ticket-progress-wrap{display:none;}
+    .entry-card{padding:28px 20px;}
+    .detail-actions{width:100%;}
+    .coord-actions{flex-direction:column;}
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-left">
-    <span class="logo-badge">Latino Built</span>
-    <h1>HEA Payout Tracker</h1>
-  </div>
-  <div class="header-right">
-    <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export</button>
-    <button class="btn btn-primary" onclick="openModal()">+ Log HEA</button>
-  </div>
-</div>
-
-<div class="stats-bar">
-  <div class="stat">
-    <span class="stat-label">Total HEAs</span>
-    <span class="stat-value" id="stat-total">--</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Paid</span>
-    <span class="stat-value green" id="stat-paid">--</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Unpaid</span>
-    <span class="stat-value red" id="stat-unpaid">--</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Total Earned</span>
-    <span class="stat-value amber" id="stat-amount">--</span>
-  </div>
-</div>
-
-<div class="main">
-  <div class="toolbar">
-    <div class="filter-group">
-      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-      <button class="filter-btn" onclick="setFilter('unpaid', this)">Unpaid</button>
-      <button class="filter-btn" onclick="setFilter('paid', this)">Paid</button>
+<div class="topbar">
+  <div class="topbar-brand">ENERGY TRUST — CONTRACTOR PORTAL</div>
+  <div class="topbar-right">
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="lb-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="lb-es" onclick="setLang('es')">ES</button>
     </div>
-    <input type="text" class="search-input" placeholder="Search client, address, contractor..." oninput="applySearch(this.value)">
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Client</th>
-          <th>Address</th>
-          <th>Contractor</th>
-          <th>Amount</th>
-          <th>Paid</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="table-body">
-        <tr><td colspan="7"><div class="loading">Loading assessments...</div></td></tr>
-      </tbody>
-    </table>
+    <span class="mode-badge" id="modeBadge">ENTRY</span>
+    <span id="topbarUser"></span>
   </div>
 </div>
 
-<!-- Add HEA Modal -->
-<div class="modal-overlay hidden" id="modal">
+<!-- ENTRY -->
+<div class="view active" id="viewEntry">
+  <div class="entry-wrap">
+    <div class="entry-card">
+      <div class="entry-logo">🏠</div>
+      <h1 id="entry-title">Contractor Portal</h1>
+      <p id="entry-sub">Submit project paperwork, track your checklist, and keep your coordinator up to date — without the email chain.</p>
+      <button class="btn btn-primary" id="btn-have-ticket" onclick="showContractorLookup()">📋 I have a ticket link</button>
+      <div class="entry-divider" id="entry-or">or</div>
+      <button class="btn btn-outline" id="btn-coord-login" onclick="showCoordLogin()">🔑 Coordinator login</button>
+    </div>
+  </div>
+</div>
+
+<!-- COORDINATOR LOGIN -->
+<div class="view" id="viewCoordLogin">
+  <div class="entry-wrap">
+    <div class="entry-card">
+      <div class="entry-logo">🔑</div>
+      <h1 id="coord-login-title">Coordinator Access</h1>
+      <p id="coord-login-sub">Enter your coordinator PIN to manage tickets.</p>
+      <div class="form-group">
+        <input class="input" type="password" id="coordPinInput" placeholder="Enter PIN (default: 1234)" onkeydown="if(event.key==='Enter')coordLogin()">
+      </div>
+      <button class="btn btn-primary" id="btn-sign-in" onclick="coordLogin()">Sign In</button>
+      <div style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" id="btn-back-login" onclick="showView('viewEntry')">← Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTRACTOR LOOKUP -->
+<div class="view" id="viewContractorLookup">
+  <div class="entry-wrap">
+    <div class="entry-card">
+      <div class="entry-logo">📋</div>
+      <h1 id="lookup-title">Open Your Ticket</h1>
+      <p id="lookup-sub">Enter the ticket code your coordinator shared with you.</p>
+      <div class="form-group">
+        <input class="input" type="text" id="ticketCodeInput" placeholder="e.g. ET-2024-001" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')openContractorTicket()">
+      </div>
+      <button class="btn btn-primary" id="btn-open-ticket" onclick="openContractorTicket()">Open Ticket →</button>
+      <div style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" id="btn-back-lookup" onclick="showView('viewEntry')">← Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COORDINATOR DASHBOARD -->
+<div class="view" id="viewCoordDash">
+  <div class="coord-layout">
+    <div class="coord-header">
+      <div>
+        <h2 id="dash-title">Dashboard</h2>
+        <p id="dash-sub">All contractor tickets</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="btn-signout" onclick="coordLogout()">Sign out</button>
+        <button class="btn btn-primary btn-sm" id="btn-new-ticket" onclick="openNewTicketModal()">+ New Ticket</button>
+      </div>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="section-title" id="section-all-tickets">All Tickets</div>
+    <div class="ticket-list" id="ticketList"></div>
+  </div>
+</div>
+
+<!-- COORDINATOR TICKET DETAIL -->
+<div class="view" id="viewCoordDetail">
+  <div class="detail-layout">
+    <button class="detail-back" id="btn-all-tickets" onclick="showCoordDash()">← All tickets</button>
+    <div class="detail-header">
+      <div style="flex:1">
+        <div class="detail-title" id="detailTitle">—</div>
+        <div class="detail-meta" id="detailMeta">—</div>
+      </div>
+      <div class="detail-actions" id="detailActions"></div>
+    </div>
+    <div id="detailSteps" class="steps-grid"></div>
+  </div>
+</div>
+
+<!-- CONTRACTOR TICKET VIEW -->
+<div class="view" id="viewContractor">
+  <div class="contractor-layout">
+    <div class="contractor-header">
+      <h2 id="cTicketTitle">—</h2>
+      <p id="cTicketMeta">—</p>
+      <div class="contractor-progress">
+        <div class="progress-bar" style="flex:1">
+          <div class="progress-fill" id="cProgressFill" style="width:0%"></div>
+        </div>
+        <span style="font-size:13px;color:var(--gray-600);font-family:'DM Mono',monospace" id="cProgressText">0 / 0</span>
+      </div>
+    </div>
+    <div class="section-title" id="checklist-section-title">Your checklist — complete in any order</div>
+    <div class="contractor-steps" id="contractorSteps"></div>
+  </div>
+</div>
+
+<!-- NEW TICKET MODAL -->
+<div class="modal-overlay" id="newTicketModal">
   <div class="modal">
-    <h2>Log New HEA</h2>
+    <h3 id="modal-title">Create New Ticket</h3>
     <div class="form-row">
       <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="f-date">
+        <label class="form-label" id="label-ticket-id">Ticket ID</label>
+        <input class="input" id="ntId" placeholder="ET-2024-001" style="text-transform:uppercase">
       </div>
       <div class="form-group">
-        <label>Amount ($)</label>
-        <input type="number" id="f-amount" value="250">
+        <label class="form-label" id="label-project-type">Project Type</label>
+        <select class="input" id="ntType">
+          <option>Home Assessment</option>
+          <option>Heat Pump Install</option>
+          <option>Weatherization</option>
+          <option>Solar Install</option>
+          <option>Water Heater</option>
+          <option>Custom</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" id="label-contractor-name">Contractor Name</label>
+        <input class="input" id="ntContractor" placeholder="Jane Smith">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="label-contractor-email">Contractor Email</label>
+        <input class="input" id="ntEmail" type="email" placeholder="jane@contractor.com">
       </div>
     </div>
     <div class="form-group">
-      <label>Client Name</label>
-      <input type="text" id="f-client" placeholder="Full name">
+      <label class="form-label" id="label-address">Property Address</label>
+      <input class="input" id="ntAddress" placeholder="123 Main St, Portland OR">
     </div>
     <div class="form-group">
-      <label>Address</label>
-      <input type="text" id="f-address" placeholder="Street, City, OR">
+      <label class="form-label" id="label-steps">Checklist Steps</label>
+      <div class="steps-builder">
+        <div id="stepsList"></div>
+        <div class="add-step-row">
+          <input class="input" id="newStepInput" placeholder="Add a step..." style="flex:1" onkeydown="if(event.key==='Enter'){addStep();event.preventDefault()}">
+          <button class="btn btn-primary btn-sm" id="btn-add-step" onclick="addStep()">Add</button>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Contractor</label>
-      <select id="f-contractor">
-        <option value="">Select contractor...</option>
-        <option>Olvera H&C (Eliseo)</option>
-        <option>A's Heating & Cooling (Abraham)</option>
-        <option>A&S Insulation (Mario)</option>
-        <option>Dunamis (Miguel)</option>
-        <option>JARA (Jose Reyes)</option>
-        <option>MPS Heating (Mauro)</option>
-        <option>Common Sense Heat Pump (Jesse)</option>
-        <option>The Complete Solution (Joaquin)</option>
-        <option>H.E.L.P. Group</option>
-        <option>Other</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Notes (optional)</label>
-      <textarea id="f-notes" rows="2" placeholder="Any notes..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveHEA()">Save HEA</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" id="btn-cancel-modal" onclick="closeNewTicketModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="btn-create-ticket" onclick="createTicket()">Create Ticket</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="pdf-loading" id="pdfLoading">
+  <div class="pdf-loading-card">
+    <div class="spinner"></div>
+    <div id="pdf-loading-text" style="font-size:14px;font-weight:500;color:var(--green)">Generating PDF packet…</div>
+  </div>
+</div>
 
 <script>
+// ── SUPABASE ──
+// Add or remove coordinators here. Each has their own PIN and sees only their own tickets.
+const COORDINATORS = [
+  { pin: '1234', name: 'Coordinator A' },
+  { pin: '5678', name: 'Coordinator B' },
+];
+let currentCoordinator = null; // set on login
 const SUPABASE_URL = 'https://tpbjsqwqfgwjymdcfouw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_v7bPMHffLqZCZvma_D_cJg_L1sMVo3L';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let _cache = {};
 
-let allRecords = [];
-let currentFilter = 'all';
-let currentSearch = '';
+async function loadTickets() {
+  const { data, error } = await sb.from('tickets').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return Object.values(_cache); }
+  // Only show tickets belonging to the logged-in coordinator
+  const all = data.map(r => r.data);
+  const tickets = currentCoordinator
+    ? all.filter(tk => tk.coordinator === currentCoordinator.name)
+    : all;
+  _cache = {};
+  tickets.forEach(t => _cache[t.id] = t);
+  return tickets;
+}
+async function saveTicket(ticket) {
+  _cache[ticket.id] = ticket;
+  const { error } = await sb.from('tickets').upsert({ id: ticket.id, data: ticket, updated_at: new Date().toISOString() });
+  if (error) console.error('Save error:', error);
+}
+async function getTicket(id) {
+  if (_cache[id]) return _cache[id];
+  const { data, error } = await sb.from('tickets').select('data').eq('id', id).single();
+  if (error || !data) return null;
+  _cache[id] = data.data;
+  return data.data;
+}
+async function updateTicket(updated) { await saveTicket(updated); }
+async function uploadFileToStorage(ticketId, stepIndex, file) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${ticketId}/${stepIndex}/${Date.now()}_${safeName}`;
+  const { data, error } = await sb.storage.from('ticket-files').upload(path, file, { upsert: true, contentType: file.type });
+  if (error) { console.error('Upload error:', error); return null; }
+  const { data: urlData } = sb.storage.from('ticket-files').getPublicUrl(path);
+  return { path, url: urlData.publicUrl, name: file.name, type: file.type };
+}
+async function deleteTicketFiles(ticketId) {
+  const { data: list } = await sb.storage.from('ticket-files').list(ticketId, { limit: 1000 });
+  if (!list || !list.length) return;
+  for (const folder of list) {
+    const { data: subList } = await sb.storage.from('ticket-files').list(`${ticketId}/${folder.name}`, { limit: 1000 });
+    if (subList && subList.length) {
+      const paths = subList.map(f => `${ticketId}/${folder.name}/${f.name}`);
+      await sb.storage.from('ticket-files').remove(paths);
+    }
+  }
+}
 
-const headers = {
-  'Content-Type': 'application/json',
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`
+// ── LANGUAGE ──
+let currentLang = 'en';
+const T = {
+  en: {
+    entry_badge:'ENTRY', coord_badge:'COORDINATOR', contractor_badge:'CONTRACTOR',
+    topbar_user:'Coordinator',
+    entry_title:'Contractor Portal',
+    entry_sub:'Submit project paperwork, track your checklist, and keep your coordinator up to date — without the email chain.',
+    btn_have_ticket:'📋 I have a ticket link', btn_coord_login:'🔑 Coordinator login', entry_or:'or',
+    coord_login_title:'Coordinator Access', coord_login_sub:'Enter your coordinator PIN to manage tickets.',
+    coord_pin_placeholder:'Enter PIN (default: 1234)', btn_sign_in:'Sign In', btn_back:'← Back',
+    lookup_title:'Open Your Ticket', lookup_sub:'Enter the ticket code your coordinator shared with you.',
+    ticket_placeholder:'e.g. ET-2024-001', btn_open_ticket:'Open Ticket →',
+    dash_title:'Dashboard', dash_sub:'All contractor tickets',
+    btn_signout:'Sign out', btn_new_ticket:'+ New Ticket',
+    stat_total:'Total Tickets', stat_active:'In Progress', stat_complete:'Completed', stat_pending:'Not Started',
+    section_all_tickets:'All Tickets',
+    btn_all_tickets:'← All tickets',
+    btn_copy_link:'🔗 Copy link', btn_export_pdf:'⬇ Export PDF', btn_email_summary:'✉ Email summary', btn_close_clean:'🗑 Close & Clean',
+    btn_approve:'✓ Approve', btn_reject:'✕ Reject', btn_comment:'💬 Comment',
+    coord_comment_placeholder:'Leave a comment for contractor…',
+    checklist_section:'Your checklist — complete in any order',
+    upload_section:'Upload files', upload_zone_text:'Click to upload photos or PDFs', upload_zone_hint:'JPG, PNG, PDF accepted',
+    fields_section:'Form fields', sig_section:'Signature', sign_above:'Sign above',
+    btn_clear_sig:'Clear', btn_save_sig:'Save',
+    btn_mark_complete:'Mark as Complete', btn_submitted:'✓ Submitted',
+    chip_approved:'Approved ✓', chip_revision:'Needs revision', chip_submitted:'Submitted', sig_on_file:'Signature on file',
+    coord_label:'Coordinator', contractor_label:'Contractor',
+    modal_title:'Create New Ticket',
+    label_ticket_id:'Ticket ID', label_project_type:'Project Type',
+    label_contractor_name:'Contractor Name', label_contractor_email:'Contractor Email',
+    label_address:'Property Address', label_steps:'Checklist Steps',
+    placeholder_step:'Add a step...', btn_add:'Add', btn_cancel:'Cancel', btn_create:'Create Ticket',
+    placeholder_contractor:'Jane Smith', placeholder_email:'jane@contractor.com', placeholder_address:'123 Main St, Portland OR',
+    assigned_to:'Assigned to', progress_complete:'complete', enter_field:'Enter value…',
+    loading_tickets:'Loading tickets…', no_tickets:'No tickets yet. Create the first one.',
+    toast_link_copied:'Link copied to clipboard', toast_uploading:'Uploading file(s)…',
+    toast_uploaded:'file(s) uploaded ✓', toast_step_submitted:'Step submitted to coordinator ✓',
+    toast_approved:'Step approved', toast_rejected:'Step returned to contractor',
+    toast_comment_added:'Comment added', toast_sig_saved:'Signature saved',
+    toast_ticket_closed:'Ticket closed — files deleted, PDF saved ✓',
+    toast_not_found:'Ticket not found. Check the code and try again.',
+    toast_bad_pin:'Incorrect PIN', toast_fill_fields:'Fill in all required fields',
+    toast_id_exists:'Ticket ID already exists', toast_looking_up:'Looking up ticket…',
+    close_confirm:'This will export the PDF and delete all uploaded files from storage to free space. Continue?',
+    pdf_header:'ENERGY TRUST OF OREGON — CONTRACTOR PACKET', pdf_generated:'Generated',
+    status_approved:'APPROVED', status_submitted:'SUBMITTED', status_rejected:'REJECTED', status_pending:'PENDING',
+    pdf_loading:'Generating PDF packet…',
+  },
+  es: {
+    entry_badge:'ENTRADA', coord_badge:'COORDINADOR', contractor_badge:'CONTRATISTA',
+    topbar_user:'Coordinador',
+    entry_title:'Portal del Contratista',
+    entry_sub:'Sube documentos, revisa tu lista de pasos y mantén a tu coordinador al día — sin cadenas de correo.',
+    btn_have_ticket:'📋 Tengo un enlace de ticket', btn_coord_login:'🔑 Acceso de coordinador', entry_or:'o',
+    coord_login_title:'Acceso de Coordinador', coord_login_sub:'Ingresa tu PIN de coordinador para gestionar tickets.',
+    coord_pin_placeholder:'Ingresa PIN (predeterminado: 1234)', btn_sign_in:'Iniciar sesión', btn_back:'← Regresar',
+    lookup_title:'Abrir Tu Ticket', lookup_sub:'Ingresa el código de ticket que te compartió tu coordinador.',
+    ticket_placeholder:'ej. ET-2024-001', btn_open_ticket:'Abrir Ticket →',
+    dash_title:'Panel de Control', dash_sub:'Todos los tickets de contratistas',
+    btn_signout:'Cerrar sesión', btn_new_ticket:'+ Nuevo Ticket',
+    stat_total:'Total de Tickets', stat_active:'En Progreso', stat_complete:'Completados', stat_pending:'Sin Iniciar',
+    section_all_tickets:'Todos los Tickets',
+    btn_all_tickets:'← Todos los tickets',
+    btn_copy_link:'🔗 Copiar enlace', btn_export_pdf:'⬇ Exportar PDF', btn_email_summary:'✉ Enviar resumen', btn_close_clean:'🗑 Cerrar y Limpiar',
+    btn_approve:'✓ Aprobar', btn_reject:'✕ Rechazar', btn_comment:'💬 Comentar',
+    coord_comment_placeholder:'Deja un comentario para el contratista…',
+    checklist_section:'Tu lista de pasos — completa en cualquier orden',
+    upload_section:'Subir archivos', upload_zone_text:'Toca para subir fotos o PDFs', upload_zone_hint:'Se aceptan JPG, PNG, PDF',
+    fields_section:'Campos del formulario', sig_section:'Firma', sign_above:'Firma arriba',
+    btn_clear_sig:'Borrar', btn_save_sig:'Guardar',
+    btn_mark_complete:'Marcar como completado', btn_submitted:'✓ Enviado',
+    chip_approved:'Aprobado ✓', chip_revision:'Necesita revisión', chip_submitted:'Enviado', sig_on_file:'Firma registrada',
+    coord_label:'Coordinador', contractor_label:'Contratista',
+    modal_title:'Crear Nuevo Ticket',
+    label_ticket_id:'ID del Ticket', label_project_type:'Tipo de Proyecto',
+    label_contractor_name:'Nombre del Contratista', label_contractor_email:'Correo del Contratista',
+    label_address:'Dirección de la Propiedad', label_steps:'Pasos del Checklist',
+    placeholder_step:'Agregar un paso...', btn_add:'Agregar', btn_cancel:'Cancelar', btn_create:'Crear Ticket',
+    placeholder_contractor:'Juan Pérez', placeholder_email:'juan@contratista.com', placeholder_address:'123 Calle Principal, Portland OR',
+    assigned_to:'Asignado a', progress_complete:'completado', enter_field:'Ingresa valor…',
+    loading_tickets:'Cargando tickets…', no_tickets:'No hay tickets aún. Crea el primero.',
+    toast_link_copied:'Enlace copiado al portapapeles', toast_uploading:'Subiendo archivo(s)…',
+    toast_uploaded:'archivo(s) subido(s) ✓', toast_step_submitted:'Paso enviado al coordinador ✓',
+    toast_approved:'Paso aprobado', toast_rejected:'Paso devuelto al contratista',
+    toast_comment_added:'Comentario agregado', toast_sig_saved:'Firma guardada',
+    toast_ticket_closed:'Ticket cerrado — archivos eliminados, PDF guardado ✓',
+    toast_not_found:'Ticket no encontrado. Revisa el código e intenta de nuevo.',
+    toast_bad_pin:'PIN incorrecto', toast_fill_fields:'Completa todos los campos requeridos',
+    toast_id_exists:'Este ID de ticket ya existe', toast_looking_up:'Buscando ticket…',
+    close_confirm:'Esto exportará el PDF y eliminará todos los archivos subidos para liberar espacio. ¿Continuar?',
+    pdf_header:'ENERGY TRUST DE OREGON — PAQUETE DEL CONTRATISTA', pdf_generated:'Generado',
+    status_approved:'APROBADO', status_submitted:'ENVIADO', status_rejected:'RECHAZADO', status_pending:'PENDIENTE',
+    pdf_loading:'Generando paquete PDF…',
+  }
 };
+function t(key) { return T[currentLang][key] || T['en'][key] || key; }
 
-async function fetchRecords() {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/hea_payout?select=*&order=date.desc`, { headers });
-    if (!res.ok) throw new Error(await res.text());
-    allRecords = await res.json();
-    renderTable();
-    updateStats();
-  } catch (err) {
-    document.getElementById('table-body').innerHTML = `<tr><td colspan="7"><div class="loading" style="color:#e74c3c">Error loading data. Check Supabase connection.</div></td></tr>`;
-    console.error(err);
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('lb-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lb-es').classList.toggle('active', lang === 'es');
+  applyTranslations();
+  const activeId = document.querySelector('.view.active').id;
+  if (activeId === 'viewCoordDash') renderDash();
+  else if (activeId === 'viewCoordDetail' && currentTicketId) openTicketDetail(currentTicketId);
+  else if (activeId === 'viewContractor' && contractorTicketId) getTicket(contractorTicketId).then(renderContractorView);
+}
+
+function applyTranslations() {
+  const s = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  const si = (id, key) => { const el = document.getElementById(id); if (el) el.innerHTML = t(key); };
+  const sp = (id, key) => { const el = document.getElementById(id); if (el) el.placeholder = t(key); };
+
+  // Entry view
+  si('entry-title', 'entry_title');
+  si('entry-sub', 'entry_sub');
+  si('btn-have-ticket', 'btn_have_ticket');
+  si('btn-coord-login', 'btn_coord_login');
+  // find the entry-divider "or" text
+  document.querySelectorAll('.entry-divider').forEach(el => { el.textContent = t('entry_or'); });
+
+  // Coordinator login view
+  s('coord-login-title', 'coord_login_title');
+  s('coord-login-sub', 'coord_login_sub');
+  sp('coordPinInput', 'coord_pin_placeholder');
+  s('btn-sign-in', 'btn_sign_in');
+  s('btn-back-login', 'btn_back');
+
+  // Contractor lookup view
+  s('lookup-title', 'lookup_title');
+  s('lookup-sub', 'lookup_sub');
+  sp('ticketCodeInput', 'ticket_placeholder');
+  s('btn-open-ticket', 'btn_open_ticket');
+  s('btn-back-lookup', 'btn_back');
+
+  // Dashboard
+  s('dash-title', 'dash_title');
+  s('dash-sub', 'dash_sub');
+  s('btn-signout', 'btn_signout');
+  s('btn-new-ticket', 'btn_new_ticket');
+  s('section-all-tickets', 'section_all_tickets');
+
+  // Detail view
+  s('btn-all-tickets', 'btn_all_tickets');
+  renderDetailActions();
+
+  // Contractor checklist view
+  s('checklist-section-title', 'checklist_section');
+
+  // Modal
+  s('modal-title', 'modal_title');
+  s('label-ticket-id', 'label_ticket_id');
+  s('label-project-type', 'label_project_type');
+  s('label-contractor-name', 'label_contractor_name');
+  s('label-contractor-email', 'label_contractor_email');
+  s('label-address', 'label_address');
+  s('label-steps', 'label_steps');
+  sp('newStepInput', 'placeholder_step');
+  sp('ntContractor', 'placeholder_contractor');
+  sp('ntEmail', 'placeholder_email');
+  sp('ntAddress', 'placeholder_address');
+  s('btn-add-step', 'btn_add');
+  s('btn-cancel-modal', 'btn_cancel');
+  s('btn-create-ticket', 'btn_create');
+
+  // Project type options
+  const ntType = document.getElementById('ntType');
+  if (ntType) {
+    const projectTypes = currentLang === 'es'
+      ? ['Evaluación del Hogar','Instalación de Bomba de Calor','Climatización','Instalación Solar','Calentador de Agua','Personalizado']
+      : ['Home Assessment','Heat Pump Install','Weatherization','Solar Install','Water Heater','Custom'];
+    Array.from(ntType.options).forEach((opt, i) => { if (projectTypes[i]) opt.text = projectTypes[i]; });
+  }
+
+  // PDF loading text
+  s('pdf-loading-text', 'pdf_loading');
+
+  // Topbar user (if logged in)
+  const tu = document.getElementById('topbarUser');
+  if (tu && tu.textContent.trim() !== '') tu.textContent = t('topbar_user');
+
+  // Mode badge — re-apply based on active view
+  const activeView = document.querySelector('.view.active');
+  if (activeView) {
+    const labels = { viewEntry:'entry_badge', viewCoordLogin:'coord_badge', viewContractorLookup:'contractor_badge', viewCoordDash:'coord_badge', viewCoordDetail:'coord_badge', viewContractor:'contractor_badge' };
+    document.getElementById('modeBadge').textContent = t(labels[activeView.id] || 'entry_badge');
   }
 }
 
-function contractorClass(name) {
-  if (!name) return 'c-other';
-  const n = name.toLowerCase();
-  if (n.includes('olvera')) return 'c-olvera';
-  if (n.includes('jara') || n.includes('reyes')) return 'c-jara';
-  if (n.includes('a&s') || n.includes('insulation')) return 'c-as';
-  if (n.includes("a's") || n.includes('abraham')) return 'c-as-hc';
-  if (n.includes('dunamis') || n.includes('miguel')) return 'c-dunamis';
-  if (n.includes('mps') || n.includes('mauro')) return 'c-mps';
-  return 'c-other';
+function renderDetailActions() {
+  const el = document.getElementById('detailActions');
+  if (!el) return;
+  el.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="copyTicketLink()">${t('btn_copy_link')}</button>
+    <button class="btn btn-sm btn-orange" onclick="exportPDF()">${t('btn_export_pdf')}</button>
+    <button class="btn btn-sm btn-primary" onclick="emailSummary()">${t('btn_email_summary')}</button>
+    <button class="btn btn-sm btn-danger" onclick="closeTicket()">${t('btn_close_clean')}</button>`;
 }
 
-function formatDate(d) {
-  if (!d) return '--';
-  const [y, m, day] = d.split('-');
-  return `${m}/${day}/${y.slice(2)}`;
+// ── VIEW ROUTING ──
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const labels = { viewEntry:'entry_badge', viewCoordLogin:'coord_badge', viewContractorLookup:'contractor_badge', viewCoordDash:'coord_badge', viewCoordDetail:'coord_badge', viewContractor:'contractor_badge' };
+  document.getElementById('modeBadge').textContent = t(labels[id] || 'entry_badge');
 }
 
-function getFiltered() {
-  return allRecords.filter(r => {
-    const matchFilter = currentFilter === 'all' || (currentFilter === 'paid' ? r.paid : !r.paid);
-    const s = currentSearch.toLowerCase();
-    const matchSearch = !s || [r.client_name, r.address, r.contractor, r.notes].some(f => f && f.toLowerCase().includes(s));
-    return matchFilter && matchSearch;
-  });
+// ── AUTH ──
+function showCoordLogin() { showView('viewCoordLogin'); }
+function showContractorLookup() { showView('viewContractorLookup'); }
+function coordLogin() {
+  const pin = document.getElementById('coordPinInput').value;
+  const match = COORDINATORS.find(c => c.pin === pin);
+  if (match) {
+    currentCoordinator = match;
+    document.getElementById('topbarUser').textContent = match.name;
+    showCoordDash();
+  } else { toast(t('toast_bad_pin'), 'error'); }
+}
+function coordLogout() {
+  currentCoordinator = null;
+  document.getElementById('topbarUser').textContent = '';
+  showView('viewEntry');
 }
 
-function renderTable() {
-  const rows = getFiltered();
-  const tbody = document.getElementById('table-body');
+// ── DASHBOARD ──
+let currentTicketId = null;
+function showCoordDash() { showView('viewCoordDash'); renderDash(); }
 
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📋</div><p>No assessments found</p></div></td></tr>`;
-    return;
+async function renderDash() {
+  const tickets = await loadTickets();
+  const total = tickets.length;
+  const active = tickets.filter(t => t.status === 'active').length;
+  const complete = tickets.filter(t => t.status === 'complete').length;
+  const pending = tickets.filter(t => t.status === 'pending').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">${t('stat_total')}</div></div>
+    <div class="stat-card orange"><div class="stat-num">${active}</div><div class="stat-label">${t('stat_active')}</div></div>
+    <div class="stat-card"><div class="stat-num">${complete}</div><div class="stat-label">${t('stat_complete')}</div></div>
+    <div class="stat-card gray"><div class="stat-num">${pending}</div><div class="stat-label">${t('stat_pending')}</div></div>`;
+  const list = document.getElementById('ticketList');
+  list.innerHTML = `<div class="empty-state"><div class="spinner" style="margin:0 auto 12px"></div><p>${t('loading_tickets')}</p></div>`;
+  if (!tickets.length) { list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${t('no_tickets')}</p></div>`; return; }
+  list.innerHTML = tickets.map(tk => {
+    const done = tk.steps.filter(s => s.status === 'done' || s.status === 'approved').length;
+    const pct = tk.steps.length ? Math.round(done / tk.steps.length * 100) : 0;
+    const sc = { active:'chip-active', complete:'chip-complete', pending:'chip-pending' }[tk.status] || 'chip-pending';
+    const rc = { active:'status-active', complete:'status-complete', pending:'status-pending' }[tk.status] || 'status-pending';
+    const statusLabel = { active: t('stat_active'), complete: t('stat_complete'), pending: t('stat_pending') }[tk.status] || tk.status;
+    return `<div class="ticket-row ${rc}" onclick="openTicketDetail('${tk.id}')">
+      <div class="ticket-id">${tk.id}</div>
+      <div class="ticket-info"><div class="ticket-name">${tk.contractor}</div><div class="ticket-sub">${tk.address} · ${tk.type}</div></div>
+      <div class="ticket-progress-wrap"><div class="progress-bar"><div class="progress-fill ${pct<100?'orange':''}" style="width:${pct}%"></div></div><div class="progress-pct">${pct}%</div></div>
+      <span class="status-chip ${sc}">${statusLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+async function openTicketDetail(id) {
+  currentTicketId = id;
+  const tk = await getTicket(id);
+  if (!tk) return;
+  document.getElementById('detailTitle').textContent = `${tk.id} — ${tk.contractor}`;
+  document.getElementById('detailMeta').textContent = `${tk.address} · ${tk.type} · ${tk.email}`;
+  renderDetailActions();
+  renderDetailSteps(tk);
+  showView('viewCoordDetail');
+}
+
+function renderDetailSteps(tk) {
+  const container = document.getElementById('detailSteps');
+  container.innerHTML = tk.steps.map((step, i) => {
+    const sc = { done:'done', approved:'approved', rejected:'rejected' }[step.status] || '';
+    const chipHtml = step.status === 'approved' ? `<span class="status-chip chip-approved">${t('chip_approved')}</span>` :
+                     step.status === 'rejected' ? `<span class="status-chip chip-rejected">${t('status_rejected')}</span>` :
+                     step.status === 'done' ? `<span class="status-chip chip-active">${t('chip_submitted')}</span>` : '';
+    const submissionHtml = (step.submissions||[]).map(s => `
+      <div class="submission-item" style="flex-wrap:wrap;gap:6px">
+        <span class="submission-icon">${fileIcon(s.type)}</span>
+        <span class="submission-name" style="flex:1;min-width:120px">${s.name}${s.archived?` <em style="color:var(--text3);font-size:11px">(archived)</em>`:''}</span>
+        <span class="submission-meta">${s.date}</span>
+        ${s.url?`<a href="${s.url}" target="_blank" class="submission-view" style="background:var(--accent);color:white;padding:3px 10px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">⬇ Open</a>`:''}
+        ${s.url&&s.type&&s.type.startsWith('image/')?`<div style="width:100%;margin-top:6px"><img src="${s.url}" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--border);object-fit:contain"></div>`:''}
+      </div>`).join('');
+    const fieldHtml = (step.fields||[]).map(f => `
+      <div class="submission-item"><span class="submission-icon">📝</span><span class="submission-name">${f.label}: <strong>${f.value||'—'}</strong></span></div>`).join('');
+    const sigHtml = step.signature ? `
+      <div class="submission-item"><span class="submission-icon">✍️</span><span class="submission-name">${t('sig_on_file')}</span><span class="submission-meta">${step.signatureDate||''}</span></div>` : '';
+    const commentsHtml = (step.comments||[]).map(c => `
+      <div class="comment-bubble ${c.from}">
+        <div class="comment-author">${c.from==='coord'?t('coord_label'):t('contractor_label')} · ${c.date}</div>${c.text}
+      </div>`).join('');
+    return `<div class="step-card ${sc}" id="stepCard_${i}">
+      <div class="step-card-header" onclick="toggleStepCard(${i})">
+        <div class="step-circle ${sc}">${sc==='approved'?'✓':sc==='rejected'?'✕':sc==='done'?'●':i+1}</div>
+        <div class="step-card-title">${step.name}</div>
+        <div class="step-card-chips">${chipHtml}</div>
+        <span class="step-chevron">▾</span>
+      </div>
+      <div class="step-card-body">
+        <div class="submission-list">${submissionHtml}${fieldHtml}${sigHtml}</div>
+        ${commentsHtml?`<div class="comment-thread">${commentsHtml}</div>`:''}
+        <textarea class="comment-box" id="coordComment_${i}" placeholder="${t('coord_comment_placeholder')}"></textarea>
+        <div class="coord-actions">
+          <button class="btn btn-sm" style="background:var(--green);color:white" onclick="approveStep(${i})">${t('btn_approve')}</button>
+          <button class="btn btn-sm btn-danger" onclick="rejectStep(${i})">${t('btn_reject')}</button>
+          <button class="btn btn-ghost btn-sm" onclick="postCoordComment(${i})">${t('btn_comment')}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleStepCard(i) { document.getElementById(`stepCard_${i}`).classList.toggle('open'); }
+
+async function approveStep(i) {
+  const tk = await getTicket(currentTicketId); tk.steps[i].status = 'approved'; checkComplete(tk);
+  await updateTicket(tk); await openTicketDetail(currentTicketId); toast(t('toast_approved'));
+}
+async function rejectStep(i) {
+  const tk = await getTicket(currentTicketId); tk.steps[i].status = 'rejected'; tk.status = 'active';
+  await updateTicket(tk); await openTicketDetail(currentTicketId); toast(t('toast_rejected'), 'warn');
+}
+async function postCoordComment(i) {
+  const txt = document.getElementById(`coordComment_${i}`).value.trim(); if (!txt) return;
+  const tk = await getTicket(currentTicketId);
+  if (!tk.steps[i].comments) tk.steps[i].comments = [];
+  tk.steps[i].comments.push({ from:'coord', text:txt, date:now() });
+  await updateTicket(tk); await openTicketDetail(currentTicketId); toast(t('toast_comment_added'));
+}
+function checkComplete(tk) {
+  tk.status = tk.steps.every(s => s.status === 'approved') ? 'complete' : 'active';
+}
+
+// ── NEW TICKET MODAL ──
+let modalSteps = [];
+const DEFAULT_STEPS = ['Pre-install site inspection','Permits pulled','Equipment received','Installation complete','Photos of completed work','Customer signature','Final inspection passed','Rebate application submitted','Utility verification','Final documentation packet'];
+
+async function openNewTicketModal() {
+  await loadTickets();
+  modalSteps = [...DEFAULT_STEPS];
+  renderModalSteps();
+  document.getElementById('ntId').value = generateId();
+  document.getElementById('newTicketModal').classList.add('open');
+}
+function closeNewTicketModal() { document.getElementById('newTicketModal').classList.remove('open'); }
+function generateId() { const n = Object.keys(_cache).length + 1; return `ET-${new Date().getFullYear()}-${String(n).padStart(3,'0')}`; }
+function renderModalSteps() {
+  document.getElementById('stepsList').innerHTML = modalSteps.map((s, i) => `
+    <div class="step-item"><div class="step-num">${i+1}</div><div class="step-name">${s}</div><button class="step-remove" onclick="removeStep(${i})">×</button></div>`).join('');
+}
+function addStep() {
+  const val = document.getElementById('newStepInput').value.trim(); if (!val) return;
+  modalSteps.push(val); document.getElementById('newStepInput').value = ''; renderModalSteps();
+}
+function removeStep(i) { modalSteps.splice(i,1); renderModalSteps(); }
+async function createTicket() {
+  const id = document.getElementById('ntId').value.trim().toUpperCase();
+  const contractor = document.getElementById('ntContractor').value.trim();
+  const email = document.getElementById('ntEmail').value.trim();
+  const address = document.getElementById('ntAddress').value.trim();
+  const type = document.getElementById('ntType').value;
+  if (!id||!contractor||!address) { toast(t('toast_fill_fields'),'error'); return; }
+  if (_cache[id]) { toast(t('toast_id_exists'),'error'); return; }
+  const ticket = { id, contractor, email, address, type, status:'pending', created:now(),
+    coordinator: currentCoordinator ? currentCoordinator.name : 'Coordinator A',
+    steps: modalSteps.map(name => ({ name, status:'pending', submissions:[], fields:[], signature:null, comments:[] })) };
+  await saveTicket(ticket); closeNewTicketModal(); showCoordDash(); toast(`${t('btn_new_ticket').replace('+ ','').replace('Nuevo ','')} ${id}`);
+}
+
+// ── CONTRACTOR VIEW ──
+let contractorTicketId = null;
+async function openContractorTicket() {
+  const code = document.getElementById('ticketCodeInput').value.trim().toUpperCase();
+  toast(t('toast_looking_up'));
+  const tk = await getTicket(code);
+  if (!tk) { toast(t('toast_not_found'),'error'); return; }
+  contractorTicketId = code; renderContractorView(tk); showView('viewContractor');
+}
+(async function checkUrlParam() {
+  const p = new URLSearchParams(location.search).get('ticket');
+  if (p) { const tk = await getTicket(p.toUpperCase()); if (tk) { contractorTicketId = p.toUpperCase(); renderContractorView(tk); setTimeout(()=>showView('viewContractor'),50); } }
+})();
+
+function renderContractorView(tk) {
+  document.getElementById('cTicketTitle').textContent = `${tk.id} — ${tk.type}`;
+  document.getElementById('cTicketMeta').textContent = `${tk.address} · ${t('assigned_to')}: ${tk.contractor}`;
+  const done = tk.steps.filter(s => s.status==='done'||s.status==='approved').length;
+  const pct = tk.steps.length ? Math.round(done/tk.steps.length*100) : 0;
+  document.getElementById('cProgressFill').style.width = pct+'%';
+  document.getElementById('cProgressText').textContent = `${done} / ${tk.steps.length} ${t('progress_complete')}`;
+  document.getElementById('checklist-section-title').textContent = t('checklist_section');
+  const container = document.getElementById('contractorSteps');
+  container.innerHTML = tk.steps.map((step, i) => {
+    const sc = step.status==='approved'?'done':step.status==='done'?'done':step.status==='rejected'?'rejected':'';
+    const chipHtml = step.status==='approved'?`<span class="status-chip chip-approved">${t('chip_approved')}</span>`:
+                     step.status==='rejected'?`<span class="status-chip chip-rejected">${t('chip_revision')}</span>`:
+                     step.status==='done'?`<span class="status-chip chip-active">${t('chip_submitted')}</span>`:'';
+    const coordComments = (step.comments||[]).filter(c=>c.from==='coord');
+    const coordCommentsHtml = coordComments.map(c=>`
+      <div class="comment-bubble coord"><div class="comment-author">${t('coord_label')} · ${c.date}</div>${c.text}</div>`).join('');
+    const uploadedFilesHtml = (step.submissions||[]).map((s,fi)=>`
+      <div class="uploaded-file" style="flex-wrap:wrap">
+        <span class="icon">${fileIcon(s.type)}</span>
+        <span class="name" style="flex:1;min-width:100px">${s.archived?s.name+' (archived)':s.name}</span>
+        ${s.url?`<a href="${s.url}" target="_blank" style="font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;background:var(--yellow-bg);padding:2px 8px;border-radius:5px">⬇ Open</a>`:''}
+        <span class="size">${s.date}</span>
+        ${!s.archived?`<button class="remove" onclick="removeSubmission(${i},${fi})">×</button>`:''}
+        ${s.url&&s.type&&s.type.startsWith('image/')?`<div style="width:100%;margin-top:6px"><img src="${s.url}" style="max-width:100%;max-height:180px;border-radius:6px;object-fit:contain;border:1px solid var(--border)"></div>`:''}
+      </div>`).join('');
+    const fieldsHtml = (step.fields||[]).map((f,fi)=>`
+      <div class="field-group"><label>${f.label}</label><input class="input" value="${f.value||''}" oninput="updateField(${i},${fi},this.value)" placeholder="${t('enter_field')}"></div>`).join('');
+    const sigHtml = step.signature
+      ? `<div class="uploaded-file"><span class="icon">✍️</span><span class="name">${t('sig_on_file')}</span><span class="size">${step.signatureDate}</span><button class="remove" onclick="clearSignature(${i})">×</button></div>`
+      : `<div class="signature-pad-wrap">
+           <canvas id="sigCanvas_${i}" width="500" height="120" style="max-width:100%"></canvas>
+           <div class="sig-toolbar">
+             <span style="font-size:12px;color:var(--gray-600);flex:1">${t('sign_above')}</span>
+             <button class="btn btn-ghost btn-sm" style="padding:4px 10px" onclick="clearCanvas(${i})">${t('btn_clear_sig')}</button>
+             <button class="btn btn-primary btn-sm" style="padding:4px 10px" onclick="saveSignature(${i})">${t('btn_save_sig')}</button>
+           </div>
+         </div>`;
+    const isComplete = step.status==='done'||step.status==='approved';
+    const btnLabel = isComplete ? t('btn_submitted') : t('btn_mark_complete');
+    const btnStyle = isComplete ? 'background:var(--green-accent);color:white;opacity:0.7;cursor:default' : 'background:var(--green);color:white';
+    return `<div class="cstep-card ${sc}" id="cstep_${i}">
+      <div class="cstep-header" onclick="toggleCStep(${i})">
+        <div class="step-circle ${sc}">${sc==='done'?'✓':sc==='rejected'?'!':i+1}</div>
+        <div class="cstep-title">${step.name}</div>
+        <div style="display:flex;gap:6px;align-items:center">${chipHtml}</div>
+        <span class="step-chevron">▾</span>
+      </div>
+      <div class="cstep-body">
+        ${coordCommentsHtml?`<div class="comment-thread" style="margin-bottom:12px">${coordCommentsHtml}</div>`:''}
+        <div class="section-title" style="margin-top:0;margin-bottom:8px">${t('upload_section')}</div>
+        <div class="upload-zone" onclick="triggerUpload(${i})">
+          <input type="file" id="fileInput_${i}" multiple accept="image/*,.pdf" onchange="handleUpload(${i},event)" style="position:absolute;opacity:0;inset:0;cursor:pointer">
+          <div class="upload-zone-icon">📎</div>
+          <div class="upload-zone-text">${t('upload_zone_text')}</div>
+          <div class="upload-zone-hint">${t('upload_zone_hint')}</div>
+        </div>
+        <div class="uploaded-files" id="uploadedFiles_${i}">${uploadedFilesHtml}</div>
+        ${step.fields&&step.fields.length?`<div class="section-title" style="margin-bottom:8px">${t('fields_section')}</div>${fieldsHtml}`:''}
+        <div class="section-title" style="margin-bottom:8px">${t('sig_section')}</div>
+        <div id="sigWrap_${i}">${sigHtml}</div>
+        <button class="btn mark-complete-btn" style="${btnStyle}" ${isComplete?'disabled':`onclick="markStepDone(${i})"`}>${btnLabel}</button>
+      </div>
+    </div>`;
+  }).join('');
+  setTimeout(()=>{ tk.steps.forEach((step,i)=>{ if(!step.signature) initSigPad(i); }); },100);
+}
+
+function toggleCStep(i) {
+  const card = document.getElementById(`cstep_${i}`); card.classList.toggle('open');
+  if (card.classList.contains('open')) { const tk = _cache[contractorTicketId]; if(tk&&!tk.steps[i].signature) setTimeout(()=>initSigPad(i),50); }
+}
+function triggerUpload(i) { document.getElementById(`fileInput_${i}`).click(); }
+async function handleUpload(i, event) {
+  const files = Array.from(event.target.files); if (!files.length) return;
+  toast(`${t('toast_uploading')}`);
+  const tk = await getTicket(contractorTicketId);
+  for (const file of files) {
+    const result = await uploadFileToStorage(contractorTicketId, i, file);
+    if (result) { tk.steps[i].submissions.push({ name:result.name, type:result.type, date:now(), size:file.size, url:result.url, path:result.path }); }
+    else {
+      const data = await new Promise(res=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(file); });
+      tk.steps[i].submissions.push({ name:file.name, type:file.type, date:now(), size:file.size, data });
+    }
   }
-
-  tbody.innerHTML = rows.map(r => `
-    <tr class="${r.paid ? 'is-paid' : ''}">
-      <td class="td-date">${formatDate(r.date)}</td>
-      <td class="td-client">${r.client_name || '--'}</td>
-      <td class="td-address">${r.address || '--'}</td>
-      <td><span class="contractor-tag ${contractorClass(r.contractor)}">${r.contractor || '--'}</span></td>
-      <td class="td-amount">$${Number(r.amount || 0).toFixed(0)}</td>
-      <td>
-        <label class="paid-toggle">
-          <span class="toggle-switch">
-            <input type="checkbox" ${r.paid ? 'checked' : ''} onchange="togglePaid('${r.id}', this.checked)">
-            <span class="toggle-slider"></span>
-          </span>
-          <span class="paid-label ${r.paid ? 'yes' : 'no'}">${r.paid ? 'PAID' : 'PENDING'}</span>
-        </label>
-      </td>
-      <td><button class="action-btn" onclick="deleteRecord('${r.id}')" title="Delete">✕</button></td>
-    </tr>
-  `).join('');
+  if (tk.status==='pending') tk.status='active';
+  await updateTicket(tk); renderContractorView(tk);
+  setTimeout(()=>{ document.getElementById(`cstep_${i}`).classList.add('open'); const t2=_cache[contractorTicketId]; if(t2&&!t2.steps[i].signature) initSigPad(i); },50);
+  toast(`${files.length} ${t('toast_uploaded')}`);
+}
+async function removeSubmission(stepIdx, fileIdx) {
+  const tk = await getTicket(contractorTicketId);
+  const sub = tk.steps[stepIdx].submissions[fileIdx];
+  if (sub&&sub.path) await sb.storage.from('ticket-files').remove([sub.path]);
+  tk.steps[stepIdx].submissions.splice(fileIdx,1);
+  await updateTicket(tk); renderContractorView(tk);
+  setTimeout(()=>{ document.getElementById(`cstep_${stepIdx}`).classList.add('open'); },50);
+}
+async function updateField(stepIdx, fieldIdx, val) {
+  const tk = await getTicket(contractorTicketId); tk.steps[stepIdx].fields[fieldIdx].value = val; await updateTicket(tk);
 }
 
-function updateStats() {
-  const paid = allRecords.filter(r => r.paid);
-  const unpaid = allRecords.filter(r => !r.paid);
-  const total = allRecords.reduce((s, r) => s + Number(r.amount || 0), 0);
-  document.getElementById('stat-total').textContent = allRecords.length;
-  document.getElementById('stat-paid').textContent = paid.length;
-  document.getElementById('stat-unpaid').textContent = unpaid.length;
-  document.getElementById('stat-amount').textContent = `$${total.toLocaleString()}`;
+// ── SIGNATURES ──
+const sigPads = {};
+function initSigPad(i) {
+  const canvas = document.getElementById(`sigCanvas_${i}`); if (!canvas) return;
+  const ctx = canvas.getContext('2d'); ctx.strokeStyle='#1a5c3a'; ctx.lineWidth=2; ctx.lineCap='round';
+  let drawing=false, lx, ly;
+  function getPos(e) { const r=canvas.getBoundingClientRect(); const src=e.touches?e.touches[0]:e; return { x:(src.clientX-r.left)*(canvas.width/r.width), y:(src.clientY-r.top)*(canvas.height/r.height) }; }
+  canvas.onmousedown=canvas.ontouchstart=e=>{ e.preventDefault(); drawing=true; const p=getPos(e); lx=p.x; ly=p.y; ctx.beginPath(); ctx.moveTo(lx,ly); };
+  canvas.onmousemove=canvas.ontouchmove=e=>{ e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); lx=p.x; ly=p.y; };
+  canvas.onmouseup=canvas.ontouchend=()=>{ drawing=false; };
+  sigPads[i]={ canvas, ctx };
+}
+function clearCanvas(i) { const pad=sigPads[i]; if(!pad) return; pad.ctx.clearRect(0,0,pad.canvas.width,pad.canvas.height); }
+async function saveSignature(i) {
+  const pad=sigPads[i]; if(!pad) return;
+  const dataUrl=pad.canvas.toDataURL();
+  const tk=await getTicket(contractorTicketId); tk.steps[i].signature=dataUrl; tk.steps[i].signatureDate=now();
+  await updateTicket(tk); renderContractorView(tk);
+  setTimeout(()=>{ document.getElementById(`cstep_${i}`).classList.add('open'); },50);
+  toast(t('toast_sig_saved'));
+}
+async function clearSignature(i) {
+  const tk=await getTicket(contractorTicketId); tk.steps[i].signature=null; tk.steps[i].signatureDate=null;
+  await updateTicket(tk); renderContractorView(tk);
+  setTimeout(()=>{ document.getElementById(`cstep_${i}`).classList.add('open'); initSigPad(i); },80);
+}
+async function markStepDone(i) {
+  const tk=await getTicket(contractorTicketId); tk.steps[i].status='done';
+  if(tk.status==='pending') tk.status='active';
+  await updateTicket(tk); renderContractorView(tk); toast(t('toast_step_submitted'));
 }
 
-async function togglePaid(id, paid) {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/hea_payout?id=eq.${id}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ paid })
-    });
-    if (!res.ok) throw new Error();
-    const rec = allRecords.find(r => r.id === id);
-    if (rec) rec.paid = paid;
-    renderTable();
-    updateStats();
-    showToast(paid ? '✓ Marked as paid' : 'Marked as unpaid', paid ? 'success' : '');
-  } catch {
-    showToast('Error updating record', 'error');
-  }
+// ── EXPORT / EMAIL ──
+function copyTicketLink() {
+  const url=`${location.origin}${location.pathname}?ticket=${currentTicketId}`;
+  navigator.clipboard.writeText(url).then(()=>toast(t('toast_link_copied')));
+}
+async function exportPDF() {
+  const tk=await getTicket(currentTicketId); if(!tk) return;
+  document.getElementById('pdfLoading').classList.add('show');
+  setTimeout(()=>{
+    try {
+      const { jsPDF }=window.jspdf;
+      const doc=new jsPDF({ unit:'pt', format:'letter' });
+      const green=[107,45,15]; const gray=[108,117,125];
+      let y=50; const W=612;
+      doc.setFillColor(...green); doc.rect(0,0,W,44,'F');
+      doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont('helvetica','bold');
+      doc.text(t('pdf_header'),40,28);
+      y=70; doc.setTextColor(0,0,0); doc.setFontSize(18); doc.setFont('helvetica','bold');
+      doc.text(`${tk.id} — ${tk.contractor}`,40,y); y+=22;
+      doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(...gray);
+      doc.text(`${tk.address} · ${tk.type} · ${tk.email}`,40,y); y+=10;
+      doc.text(`${t('pdf_generated')}: ${now()}`,40,y); y+=20;
+      doc.setDrawColor(...green); doc.setLineWidth(1.5); doc.line(40,y,W-40,y); y+=20;
+      tk.steps.forEach((step,i)=>{
+        if(y>700){ doc.addPage(); y=50; }
+        const statusLabel={ approved:t('status_approved'), done:t('status_submitted'), rejected:t('status_rejected'), pending:t('status_pending') }[step.status]||t('status_pending');
+        const statusColor={ approved:[22,163,74], done:[224,123,42], rejected:[192,57,43], pending:[108,117,125] }[step.status];
+        doc.setFillColor(248,249,250); doc.rect(40,y-12,W-80,22,'F');
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(0,0,0);
+        doc.text(`${i+1}. ${step.name}`,50,y);
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...statusColor);
+        doc.text(statusLabel,W-90,y); y+=16;
+        if(step.submissions&&step.submissions.length){
+          step.submissions.forEach(s=>{
+            if(y>680){ doc.addPage(); y=50; }
+            if(s.type&&s.type.startsWith('image/')&&(s.data||s.url)){
+              try{ const imgSrc=s.data||s.url; const imgType=s.type.includes('png')?'PNG':'JPEG'; doc.addImage(imgSrc,imgType,50,y,480,0); const props=doc.getImageProperties(imgSrc); const h=(props.height/props.width)*480; y+=h+8; }
+              catch(e){ doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...gray); doc.text(`  [Image] ${s.name} (${s.date})`,50,y); y+=13; }
+            } else { doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(...gray); doc.text(`  ${s.name} (${s.date})`,50,y); y+=13; }
+          });
+        }
+        if(step.fields&&step.fields.length){ step.fields.forEach(f=>{ doc.text(`  ${f.label}: ${f.value||'—'}`,50,y); y+=13; }); }
+        if(step.signature){ try{ doc.addImage(step.signature,'PNG',50,y,120,36); y+=42; }catch(e){} }
+        const coordComments=(step.comments||[]).filter(c=>c.from==='coord');
+        if(coordComments.length){ doc.setFontSize(10); doc.setFont('helvetica','italic'); doc.setTextColor(...gray); coordComments.forEach(c=>{ doc.text(`  💬 ${t('coord_label')}: ${c.text}`,50,y); y+=13; }); }
+        y+=10;
+      });
+      doc.save(`${tk.id}_packet.pdf`);
+    } catch(e){ toast('PDF generation failed','error'); }
+    document.getElementById('pdfLoading').classList.remove('show');
+  },300);
+}
+async function closeTicket() {
+  if(!confirm(t('close_confirm'))) return;
+  await exportPDF();
+  const tk=await getTicket(currentTicketId); if(!tk) return;
+  await deleteTicketFiles(currentTicketId);
+  tk.steps.forEach(step=>{ step.submissions=step.submissions.map(s=>({ name:s.name, type:s.type, date:s.date, archived:true })); });
+  tk.status='complete'; tk.closedAt=now(); await updateTicket(tk);
+  toast(t('toast_ticket_closed')); setTimeout(()=>showCoordDash(),1500);
+}
+async function emailSummary() {
+  const tk=await getTicket(currentTicketId); if(!tk) return;
+  const done=tk.steps.filter(s=>s.status==='done'||s.status==='approved').length;
+  const pct=Math.round(done/tk.steps.length*100);
+  const stepLines=tk.steps.map((s,i)=>{ const label={approved:'✅ '+t('status_approved'),done:'🟡 '+t('status_submitted'),rejected:'❌ '+t('status_rejected'),pending:'⬜ '+t('status_pending')}[s.status]||'⬜'; return `${i+1}. ${s.name} — ${label}`; }).join('\n');
+  const body=encodeURIComponent(`${tk.id}\n${tk.contractor}\n${tk.address}\n${pct}% (${done}/${tk.steps.length})\n\n${stepLines}\n\n${t('pdf_generated')}: ${now()}`);
+  const subject=encodeURIComponent(`${tk.id} — ${tk.contractor} (${pct}%)`);
+  window.open(`mailto:${tk.email||''}?subject=${subject}&body=${body}`);
 }
 
-async function deleteRecord(id) {
-  if (!confirm('Delete this HEA record?')) return;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/hea_payout?id=eq.${id}`, {
-      method: 'DELETE',
-      headers
-    });
-    if (!res.ok) throw new Error();
-    allRecords = allRecords.filter(r => r.id !== id);
-    renderTable();
-    updateStats();
-    showToast('Record deleted', '');
-  } catch {
-    showToast('Error deleting record', 'error');
-  }
+// ── UTILS ──
+function fileIcon(type) { if(!type) return '📄'; if(type.startsWith('image/')) return '🖼️'; if(type==='application/pdf') return '📕'; return '📄'; }
+function now() { return new Date().toLocaleDateString('en-US',{ month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+let toastTimer;
+function toast(msg, type='success') {
+  const el=document.getElementById('toast'); el.textContent=msg;
+  el.style.background=type==='error'?'var(--red)':type==='warn'?'var(--orange)':'var(--green)';
+  el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
 }
 
-function openModal() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('f-date').value = today;
-  document.getElementById('f-client').value = '';
-  document.getElementById('f-address').value = '';
-  document.getElementById('f-contractor').value = '';
-  document.getElementById('f-amount').value = '250';
-  document.getElementById('f-notes').value = '';
-  document.getElementById('modal').classList.remove('hidden');
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.add('hidden');
-}
-
-async function saveHEA() {
-  const date = document.getElementById('f-date').value;
-  const client_name = document.getElementById('f-client').value.trim();
-  const address = document.getElementById('f-address').value.trim();
-  const contractor = document.getElementById('f-contractor').value;
-  const amount = parseFloat(document.getElementById('f-amount').value) || 250;
-  const notes = document.getElementById('f-notes').value.trim();
-
-  if (!date || !client_name || !contractor) {
-    showToast('Date, client, and contractor are required', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/hea_payout`, {
-      method: 'POST',
-      headers: { ...headers, 'Prefer': 'return=representation' },
-      body: JSON.stringify({ date, client_name, address, contractor, amount, notes, paid: false })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const [newRec] = await res.json();
-    allRecords.unshift(newRec);
-    renderTable();
-    updateStats();
-    closeModal();
-    showToast('✓ HEA logged successfully', 'success');
-  } catch (err) {
-    showToast('Error saving record', 'error');
-    console.error(err);
-  }
-}
-
-function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderTable();
-}
-
-function applySearch(val) {
-  currentSearch = val;
-  renderTable();
-}
-
-function exportCSV() {
-  const rows = getFiltered();
-  const headers = ['Date', 'Client', 'Address', 'Contractor', 'Amount', 'Paid', 'Notes'];
-  const csv = [headers, ...rows.map(r => [
-    r.date, r.client_name, r.address, r.contractor, r.amount, r.paid ? 'Yes' : 'No', r.notes || ''
-  ])].map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `HEA_Payout_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
-
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast show ${type}`;
-  setTimeout(() => t.className = 'toast', 2800);
-}
-
-document.getElementById('modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal')) closeModal();
-});
-
-fetchRecords();
+// ── INIT ──
+(async function init() { applyTranslations(); await loadTickets(); })();
 </script>
 </body>
 </html>
